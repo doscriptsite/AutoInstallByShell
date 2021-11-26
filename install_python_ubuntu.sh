@@ -2,8 +2,7 @@
 # Check if user is root
 [ $(id -u) != "0" ] && { echo "${CFAILURE}Error: You must be root to run this script${CEND}"; exit 1; }
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
-export PATH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 echo=echo
 for cmd in echo /bin/echo; do
@@ -57,10 +56,9 @@ Install_Python() {
   main_version=${check_ver//./}
   dir="/usr/local/python$main_version"
 
-  [ -z "$(grep -w epel /etc/yum.repos.d/*.repo)" ] && yum -y install epel-release
-  pkgList="wget gcc gcc-c++ make bzip2-devel dialog augeas-libs openssl openssl-devel libffi-devel redhat-rpm-config ca-certificates"
+  pkgList="gcc dialog libaugeas0 augeas-lenses libssl-dev libffi-dev ca-certificates"
   for Package in ${pkgList}; do
-    yum -y install ${Package}
+    apt-get -y install $Package
   done
 
   if [ -e $dir ]; then
