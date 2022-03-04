@@ -1,6 +1,9 @@
 #!/bin/bash
 # Check if user is root
-[ $(id -u) != "0" ] && { echo "${CFAILURE}Error: You must be root to run this script${CEND}"; exit 1; }
+[ $(id -u) != "0" ] && {
+  echo "${CFAILURE}Error: You must be root to run this script${CEND}"
+  exit 1
+}
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
@@ -30,7 +33,8 @@ CMSG="$CCYAN"
 name="Python"
 default_version="3.7.12"
 
-while :; do echo
+while :; do
+  echo
   read -e -p "Please enter the version number you need (Default version: ${default_version}): " version
   if [ "$version" = "" ]; then
     version="${default_version}"
@@ -43,7 +47,8 @@ while :; do echo
     break
   fi
 done
-while :; do echo
+while :; do
+  echo
   read -e -p "Do you want to use Chinese pypi? [y/n]: " switch_pypi
   if [[ ! ${switch_pypi} =~ ^[y,n]$ ]]; then
     echo "${CWARNING}Input error! Please only input 'y' or 'n'${CEND}"
@@ -56,15 +61,17 @@ main_version=${check_ver//./}
 dir="/usr/local/python${main_version}"
 
 if [ -d ${dir} ]; then
-while :; do echo
-  read -e -p "Dir ${dir} [found]. Python${main_version} already installed! Whether to remove the existing directory and reinstall python${main_version}? [y]: " continue_flag
-  if [[ ! ${continue_flag} == 'y' ]]; then
-    echo "${CWARNING}Input error! Please only input 'y'${CEND}"
-    kill -9 $$; exit 1;
-  else
-    break
-  fi
-done
+  while :; do
+    echo
+    read -e -p "Dir ${dir} [found]. Python${main_version} already installed! Whether to remove the existing directory and reinstall python${main_version}? [y]: " continue_flag
+    if [[ ! ${continue_flag} == 'y' ]]; then
+      echo "${CWARNING}Input error! Please only input 'y'${CEND}"
+      kill -9 $$
+      exit 1
+    else
+      break
+    fi
+  done
   echo "${CWARNING} Python${main_version} [no found] ${CEND}"
 fi
 
@@ -92,18 +99,32 @@ Install_Python() {
   fi
 
   echo "Download python..."
-  wget --limit-rate=100M --tries=6 -c ${src_url}; sleep 1;
+  wget --limit-rate=100M --tries=6 -c ${src_url}
+  sleep 1
   if [ ! -s ./${pyfile} ]; then
     echo "${CFAILURE}Auto download failed! You can manually download ${src_url} into the current directory [${PWD}].${CEND}"
-    kill -9 $$; exit 1;
+    kill -9 $$
+    exit 1
   fi
   tar zxf ./${pyfile}
 
-  pushd ./${name}-${version} > /dev/null
+  pushd ./${name}-${version} >/dev/null
   ./configure --prefix=${dir}
   #./configure --prefix=${dir} --enable-optimizations --with-ssl
+  if [ $? -ne 0 ]; then
+    popd >/dev/null
+    echo "${CFAILURE}Python install failed! ${CEND}"
+    kill -9 $$
+    exit 1
+  fi
   make && make install
-  popd > /dev/null
+  if [ $? -ne 0 ]; then
+    popd >/dev/null
+    echo "${CFAILURE}Python install failed! ${CEND}"
+    kill -9 $$
+    exit 1
+  fi
+  popd >/dev/null
 
   # eg: link python37 to /usr/bin/
   ln -s ${dir}/bin/python${check_ver} /usr/bin/python${main_version}
@@ -114,7 +135,7 @@ Install_Python() {
     rm -rf ./${name}-${version}
   fi
   if [ "${switch_pypi}" == 'y' ]; then
-    if [ ! -e "/root/.pip/pip.conf" ] ;then
+    if [ ! -e "/root/.pip/pip.conf" ]; then
       [ ! -d "/root/.pip" ] && mkdir /root/.pip
       cat >/root/.pip/pip.conf <<EOF
 [global]
@@ -138,10 +159,10 @@ EOF
 }
 
 # start Time
-startTime=`date +%s`
+startTime=$(date +%s)
 Install_Python 2>&1 | tee -a ./install.log
-endTime=`date +%s`
-((installTime=($endTime-$startTime)/60))
+endTime=$(date +%s)
+((installTime = ($endTime - $startTime) / 60))
 echo "####################Congratulations########################"
 echo "Total Install Time: ${CQUESTION}${installTime}${CEND} minutes"
 echo -e "\n$(printf "%-32s" "Python install dir":)${CMSG}${dir}${CEND}"
