@@ -76,6 +76,8 @@ if [ -d ${dir} ]; then
 fi
 
 Install_Python() {
+  # start Time
+  startTime=$(date +%s)
   pkgList="gcc dialog libaugeas0 augeas-lenses libssl-dev libffi-dev ca-certificates"
   for Package in ${pkgList}; do
     apt-get -y install ${Package}
@@ -156,15 +158,13 @@ EOF
 
   echo -e "\nInstalled Python and pip version is ... "
   python${main_version} -V && pip${main_version} -V
-}
 
-# start Time
-startTime=$(date +%s)
-Install_Python 2>&1 | tee -a ./install.log
-endTime=$(date +%s)
-((installTime = ($endTime - $startTime) / 60))
-echo "####################Congratulations########################"
-echo "Total Install Time: ${CQUESTION}${installTime}${CEND} minutes"
-echo -e "\n$(printf "%-32s" "Python install dir":)${CMSG}${dir}${CEND}"
-echo -e "\n$(printf "%-32s" "Python bin file":)${CMSG}/usr/bin/python${main_version}${CEND}"
-echo -e "\n$(printf "%-32s" "Pip bin file":)${CMSG}/usr/bin/pip${main_version}${CEND}"
+  endTime=$(date +%s)
+  ((installTime = ($endTime - $startTime) / 60))
+  echo "####################Congratulations########################"
+  echo "Total Install Time: ${CQUESTION}${installTime}${CEND} minutes"
+  echo -e "\n$(printf "%-32s" "Python install dir":)${CMSG}${dir}${CEND}"
+  echo -e "\n$(printf "%-32s" "Python bin file":)${CMSG}/usr/bin/python${main_version}${CEND}"
+  echo -e "\n$(printf "%-32s" "Pip bin file":)${CMSG}/usr/bin/pip${main_version}${CEND}"
+}
+Install_Python 2>&1 | tee -a ./install_python.log

@@ -552,4 +552,4 @@ EOF
   echo -e "\n$(printf "%-32s" "Web dir":)${CMSG}${wwwroot_dir}${CEND}"
   echo -e "\n$(printf "%-32s" "Web logs dir":)${CMSG}${wwwlogs_dir}${CEND}"
 }
-Install_Nginx 2>&1 | tee -a ./install.log
+Install_Nginx 2>&1 | tee -a ./install_nginx.log

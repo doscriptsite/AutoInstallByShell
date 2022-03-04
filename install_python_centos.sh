@@ -76,6 +76,9 @@ if [ -d ${dir} ]; then
 fi
 
 Install_Python() {
+  # start Time
+  startTime=$(date +%s)
+
   [ -z "$(grep -w epel /etc/yum.repos.d/*.repo)" ] && yum -y install epel-release
   pkgList="wget gcc gcc-c++ make bzip2-devel dialog augeas-libs openssl openssl-devel libffi-devel redhat-rpm-config ca-certificates"
   for Package in ${pkgList}; do
@@ -157,14 +160,13 @@ EOF
 
   echo -e "\nInstalled Python and pip version is ... "
   python${main_version} -V && pip${main_version} -V
+
+  endTime=$(date +%s)
+  ((installTime = ($endTime - $startTime) / 60))
+  echo "####################Congratulations########################"
+  echo "Total Install Time: ${CQUESTION}${installTime}${CEND} minutes"
+  echo -e "\n$(printf "%-32s" "Python install dir":)${CMSG}${dir}${CEND}"
+  echo -e "\n$(printf "%-32s" "Python bin file":)${CMSG}/usr/bin/python${main_version}${CEND}"
+  echo -e "\n$(printf "%-32s" "Pip bin file":)${CMSG}/usr/bin/pip${main_version}${CEND}"
 }
-# start Time
-startTime=$(date +%s)
-Install_Python 2>&1 | tee -a ./install.log
-endTime=$(date +%s)
-((installTime = ($endTime - $startTime) / 60))
-echo "####################Congratulations########################"
-echo "Total Install Time: ${CQUESTION}${installTime}${CEND} minutes"
-echo -e "\n$(printf "%-32s" "Python install dir":)${CMSG}${dir}${CEND}"
-echo -e "\n$(printf "%-32s" "Python bin file":)${CMSG}/usr/bin/python${main_version}${CEND}"
-echo -e "\n$(printf "%-32s" "Pip bin file":)${CMSG}/usr/bin/pip${main_version}${CEND}"
+Install_Python 2>&1 | tee -a ./install_python.log
