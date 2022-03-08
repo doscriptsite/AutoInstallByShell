@@ -54,6 +54,7 @@ wwwlogs_dir="/mnt/wwwlogs"
 nginx_install_dir="/usr/local/nginx"
 nginx_modules_options="--with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-http_ssl_module --with-http_gzip_static_module --with-http_realip_module --with-http_flv_module --with-http_mp4_module"
 ngx_brotli_module_flag=0
+ngx_ngx_headers_more_filter_module_flag=0
 
 [ -e "${nginx_install_dir}/sbin/nginx" ] && { echo "${CWARNING}Nginx already installed! ${CEND}"; exit 1; }
 
@@ -81,12 +82,36 @@ while :; do
   fi
 done
 
-echo
-read -e -p "Please enter your custom nginx server name(Leave blank to not modify): " server_name
+while :; do
+  echo
+  read -e -p "Do you want to add ngx_http_headers_more_filter_module module? [y/n]: " enable_ngx_headers_more_filter
+  if [[ ! ${enable_ngx_headers_more_filter} =~ ^[y,n]$ ]]; then
+    echo "${CWARNING}Input error! Please only input 'y' or 'n'${CEND}"
+  else
+    if [ "${enable_ngx_headers_more_filter}" == 'y' ]; then
+      while :; do echo
+        echo 'Please select the installation method of ngx_http_headers_more_filter_module (See https://github.com/openresty/headers-more-nginx-module):'
+        echo -e "\t${CMSG}1${CEND}. Dynamically loaded"
+        echo -e "\t${CMSG}2${CEND}. Statically compiled"
+        read -e -p "Please input a number:(Default 1 press Enter) " ngx_headers_more_filter_install_method
+        ngx_headers_more_filter_install_method=${ngx_headers_more_filter_install_method:-1}
+        if [[ ! ${ngx_headers_more_filter_install_method} =~ ^[1,2]$ ]]; then
+          echo "${CWARNING}Input error! Please only input number 1~2${CEND}"
+        else
+          break
+        fi
+      done
+    fi
+    break
+  fi
+done
 
-echo
-read -e -p "Please enter your custom nginx server version(Leave blank to not modify): " server_version
-
+if [ "${enable_ngx_headers_more_filter}" == 'y' ]; then
+  echo
+  read -e -p "Please enter your custom nginx server name(Leave blank to not modify): " server_name
+  #echo
+  #read -e -p "Please enter your custom nginx server version(Leave blank to not modify): " server_version
+fi
 
 Install_Jemalloc() {
   if [ ! -e "/usr/local/lib/libjemalloc.so" ]; then
@@ -144,6 +169,17 @@ Download_Nginx_Brotli() {
   command -v git >/dev/null 2>&1 || { apt-get install -y git; }
   git clone https://github.com/google/ngx_brotli --recursive
 }
+Download_Nginx_Headers_More_Module() {
+  # ngx_http_headers_more_filter_module
+  if [ -d ./headers-more-nginx-module ]; then
+    echo "${CWARNING} Dir headers-more-nginx-module [found]${CEND}"
+    rm -rf ./headers-more-nginx-module
+  fi
+  mkdir -p ./headers-more-nginx-module
+
+  command -v git >/dev/null 2>&1 || { apt-get install -y git; }
+  git clone https://github.com/openresty/headers-more-nginx-module --depth 1
+}
 Install_Nginx() {
   # start Time
   startTime=$(date +%s)
@@ -172,6 +208,10 @@ Install_Nginx() {
     echo "Download ngx_brotli..."
     Download_Nginx_Brotli
   fi
+  if [ "${enable_ngx_headers_more_filter}" == 'y' ]; then
+    echo "Download ngx_http_headers_more_filter_module..."
+    Download_Nginx_Headers_More_Module
+  fi
 
   if [ -d ./nginx-${nginx_ver} ]; then
     echo "${CWARNING} Dir nginx-${nginx_ver} [found]${CEND}"
@@ -183,14 +223,14 @@ Install_Nginx() {
   tar xzf openssl-${openssl11_ver}.tar.gz
   pushd nginx-${nginx_ver} >/dev/null
 
-  # Modify Nginx version
-  if [ "$server_version" != "" ]; then
-    sed -i 's@#define NGINX_VERSION.*$@#define NGINX_VERSION      "'${server_version}'"@' src/core/nginx.h
-  fi
-  if [ "$server_name" != "" ]; then
-    sed -i "s@Server: nginx@Server: ${server_name}@" src/http/ngx_http_header_filter_module.c
-    sed -i 's@#define NGINX_VER.*NGINX_VERSION$@#define NGINX_VER          "'${server_name}'/" NGINX_VERSION@' src/core/nginx.h
-  fi
+  # Modify Nginx version (Not recommended)
+  #if [ "$server_version" != "" ]; then
+  #  sed -i 's@#define NGINX_VERSION.*$@#define NGINX_VERSION      "'${server_version}'"@' src/core/nginx.h
+  #fi
+  #if [ "$server_name" != "" ]; then
+  #  sed -i "s@Server: nginx@Server: ${server_name}@" src/http/ngx_http_header_filter_module.c
+  #  sed -i 's@#define NGINX_VER.*NGINX_VERSION$@#define NGINX_VER          "'${server_name}'/" NGINX_VERSION@' src/core/nginx.h
+  #fi
 
   # close debug
   sed -i 's@CFLAGS="$CFLAGS -g"@#CFLAGS="$CFLAGS -g"@' auto/cc/gcc
@@ -203,6 +243,16 @@ Install_Nginx() {
         ;;
       2)
         nginx_modules_options="${nginx_modules_options} --add-module=../ngx_brotli"
+        ;;
+    esac
+  fi
+  if [ "${enable_ngx_headers_more_filter}" == 'y' ]; then
+    case "${ngx_headers_more_filter_install_method}" in
+      1)
+        nginx_modules_options="${nginx_modules_options} --add-dynamic-module=../headers-more-nginx-module"
+        ;;
+      2)
+        nginx_modules_options="${nginx_modules_options} --add-module=../headers-more-nginx-module"
         ;;
     esac
   fi
@@ -247,6 +297,22 @@ Install_Nginx() {
       fi
     else
       ngx_brotli_module_flag=1
+    fi
+  fi
+  if [ "${enable_ngx_headers_more_filter}" == 'y' ]; then
+    if [ "${ngx_headers_more_filter_install_method}" == '1' ]; then
+      echo "Make ngx_http_headers_more_filter_module dynamic module..."
+      make modules
+      if [ $? -ne 0 ]; then
+        echo "${CFAILURE}Make ngx_http_headers_more_filter_module module failed! ${CEND}"
+      else
+        [ ! -f ${nginx_install_dir}/modules/ngx_http_headers_more_filter_module.so ] && cp objs/ngx_http_headers_more_filter_module.so ${nginx_install_dir}/modules/ngx_http_headers_more_filter_module.so
+        #cp objs/*.so ${nginx_install_dir}/modules/
+        chmod 644 ${nginx_install_dir}/modules/ngx_http_headers_more_filter_module.so
+        ngx_ngx_headers_more_filter_module_flag=1
+      fi
+    else
+      ngx_ngx_headers_more_filter_module_flag=1
     fi
   fi
   popd >/dev/null
@@ -378,6 +444,7 @@ http {
   tcp_nopush on;
   keepalive_timeout 120;
   server_tokens off;
+  #more_set_headers 'Server: Server';
   tcp_nodelay on;
 
   ##fastcgi
@@ -509,6 +576,15 @@ EOF
     fi
   fi
 
+  if [ "${enable_ngx_headers_more_filter}" == 'y' ] && [ ${ngx_ngx_headers_more_filter_module_flag} == 1 ]; then
+    if [ "${ngx_headers_more_filter_install_method}" == '1' ]; then
+      sed -i "1i load_module modules/ngx_http_headers_more_filter_module.so;\n" ${nginx_install_dir}/conf/nginx.conf
+    fi
+    if [ "$server_name" != "" ]; then
+      sed -i "s@#more_set_headers 'Server: Server'@more_set_headers 'Server: ${server_name}'@" ${nginx_install_dir}/conf/nginx.conf
+    fi
+  fi
+
   # logrotate nginx log
   cat >/etc/logrotate.d/nginx <<EOF
 ${wwwlogs_dir}/*nginx.log {
@@ -530,16 +606,22 @@ EOF
   rm -rf ./openssl-${openssl11_ver}
   rm -rf ./pcre-${pcre_ver}
   [ -d ./ngx_brotli ] && rm -rf ./ngx_brotli
+  [ -d ./headers-more-nginx-module ] && rm -rf ./headers-more-nginx-module
 
   echo -e "${CSUCCESS} \nNginx ${nginx_ver} Installed Successfully!${CEND}"
 
   if [ "${enable_ngx_brotli}" == 'y' ] && [ ${ngx_brotli_module_flag} != 1 ]; then
     echo "${CFAILURE}ngx_brotli dynamic module install failed! ${CEND}"
   fi
+  if [ "${enable_ngx_headers_more_filter}" == 'y' ] && [ ${ngx_ngx_headers_more_filter_module_flag} != 1 ]; then
+    echo "${CFAILURE}ngx_http_headers_more_filter_module dynamic module install failed! ${CEND}"
+  fi
 
   echo -e "\nInstalled Nginx version and configure options: "
   nginx -V
 
+  echo
+  nginx -t
   service nginx start
 
   endTime=$(date +%s)
