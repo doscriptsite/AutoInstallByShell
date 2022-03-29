@@ -33,6 +33,8 @@ CMSG="$CCYAN"
 name="Python"
 default_version="3.7.12"
 
+command -v curl >/dev/null 2>&1 || { yum -y install curl; }
+
 while :; do
   echo
   read -e -p "Please enter the version number you need (Default version: ${default_version}): " version

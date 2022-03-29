@@ -31,6 +31,9 @@ CWARNING="$CYELLOW"
 CMSG="$CCYAN"
 THREAD=$(grep 'processor' /proc/cpuinfo | sort -u | wc -l)
 
+command -v curl >/dev/null 2>&1 || { apt-get install -y curl; }
+command -v wget >/dev/null 2>&1 || { apt-get install -y wget; }
+
 Download_src() {
   [ -s "${src_url##*/}" ] && echo "[${CMSG}${src_url##*/}${CEND}] found" || {
     wget --limit-rate=100M --tries=6 -c ${src_url}

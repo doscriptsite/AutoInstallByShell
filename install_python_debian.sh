@@ -33,6 +33,8 @@ CMSG="$CCYAN"
 name="Python"
 default_version="3.7.12"
 
+command -v curl >/dev/null 2>&1 || { apt-get install -y curl; }
+
 while :; do
   echo
   read -e -p "Please enter the version number you need (Default version: ${default_version}): " version
@@ -78,7 +80,7 @@ fi
 Install_Python() {
   # start Time
   startTime=$(date +%s)
-  pkgList="gcc dialog libaugeas0 augeas-lenses libssl-dev libffi-dev ca-certificates"
+  pkgList="gcc wget make dialog libaugeas0 augeas-lenses zlib1g-dev libssl-dev libffi-dev ca-certificates"
   for Package in ${pkgList}; do
     apt-get -y install ${Package}
   done
