@@ -41,7 +41,7 @@ while :; do
   if [ "$version" = "" ]; then
     version="${default_version}"
   fi
-  pyfile="${name}-${version}.tgz"
+  pyfile="${name}-${version}.tar.xz"
   src_url=https://www.python.org/ftp/python/${version}/${pyfile}
   if [[ $(echo $(curl -sIL -w "%{http_code}" -o /dev/null ${src_url})) != '200' ]]; then
     echo "${CWARNING}The python version is wrong, please re-enter${CEND}"
@@ -111,7 +111,7 @@ Install_Python() {
     kill -9 $$
     exit 1
   fi
-  tar zxf ./${pyfile}
+  tar -zxJf ./${pyfile}
 
   pushd ./${name}-${version} >/dev/null
   ./configure --prefix=${dir}
