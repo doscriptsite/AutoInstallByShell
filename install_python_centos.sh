@@ -111,7 +111,7 @@ Install_Python() {
     kill -9 $$
     exit 1
   fi
-  tar -zxJf ./${pyfile}
+  tar -xJf ./${pyfile}
 
   pushd ./${name}-${version} >/dev/null
   ./configure --prefix=${dir}
