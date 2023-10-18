@@ -31,7 +31,7 @@ CWARNING="$CYELLOW"
 CMSG="$CCYAN"
 
 name="Python"
-default_version="3.7.12"
+default_version="3.8.18"
 
 command -v curl >/dev/null 2>&1 || { yum -y install curl; }
 
@@ -88,19 +88,18 @@ Install_Python() {
   done
 
   if [ -d ${dir} ]; then
+    echo "${CWARNING} Python${main_version} [found] ${CEND}"
     rm -rf /usr/local/python${main_version}
     rm -rf /usr/bin/python${main_version}
     rm -rf /usr/bin/pip${main_version}
-  else
-    echo "${CWARNING} Python${main_version} [no found] ${CEND}"
   fi
 
   if [ -s ./${pyfile} ]; then
-    echo "${CWARNING} ${pyfile} [found]${CEND}"
+    echo "${CWARNING} ${pyfile} [found] ${CEND}"
     rm -f ./${pyfile}
   fi
   if [ -d ./${name}-${version} ]; then
-    echo "${CWARNING} Dir ${name}-${version} [found]${CEND}"
+    echo "${CWARNING} Dir ${name}-${version} [found] ${CEND}"
     rm -rf ./${name}-${version}
   fi
 
